@@ -24,6 +24,8 @@ Class WP_Notifications{
 		add_action( 'delete_post', array($this, 'post_delete_notification'), 10, 1);
 		add_action( 'post_updated', array($this, 'post_update_notification'), 10, 3 );
 		add_action( 'wp_notifications_add_sender', array($this, 'add_subscriber'), 10, 1 );
+		add_action( 'wp_login', array($this, 'user_login_notification'), 10, 2 );
+		add_action( 'clear_auth_cookie', array($this, 'user_logout_notification'), 10);
 	}
 	
 	/**
@@ -31,11 +33,10 @@ Class WP_Notifications{
 	 *
 	 * @param string $plugin 
 	 * @return void
-	 * @author Pavlos Syngelakis
 	 */
 	function add_subscriber($plugin){
-		if ( !in_array( $plugin, $this->_plugins ) ){
-			$this->_plugins[] = $plugin;
+		if ( !isset( $this->_plugins[$plugin] ) ){
+			$this->_plugins[$plugin] = $plugin;
 		}
 	}
 		
@@ -59,6 +60,15 @@ Class WP_Notifications{
 		}		
 	}
 	
+	function user_login_notification( $user_login, $user ){
+	  $this->notify_subscribers( 'user', 'login', $user );
+	}
+	
+	function user_logout_notification(){
+	  $user = wp_get_current_user();
+	  $this->notify_subscribers( 'user', 'logout', $user );
+	}
+	
 	/**
 	 * Generates every notification factory and fires the specific action for each plugin.
 	 *
@@ -66,12 +76,13 @@ Class WP_Notifications{
 	 * @param string $op_payload 
 	 * @param string $payload 
 	 * @return array
-	 * @author Pavlos Syngelakis
 	 */
 	function generate_notifications( $type_payload, $op_payload, $payload ){
 		$factories = array();
+		$user = wp_get_current_user();
 		foreach( $this->_plugins as $plugin){
 			$factory = new Notifications_Api_Factory_Queue($plugin, $type_payload, $op_payload, $payload);
+			$factory->user = $user;
 			do_action( $plugin.'_notification_factory', $factory );
 			$factories[] = $factory;
 		}
@@ -85,7 +96,6 @@ Class WP_Notifications{
 	 * @param string $op_payload 
 	 * @param Object $payload 
 	 * @return void
-	 * @author Pavlos Syngelakis
 	 */
 	protected function notify_subscribers( $type_payload, $op_payload, $payload ){
 		$factories = $this->generate_notifications($type_payload, $op_payload, $payload);
@@ -98,7 +108,6 @@ Class WP_Notifications{
 	 *
 	 * @param array $factories 
 	 * @return void
-	 * @author Pavlos Syngelakis
 	 */
 	protected function alter_notifications( $factories ){
 		do_action_ref_array('wp_notifications_alter', $factories);
@@ -109,7 +118,6 @@ Class WP_Notifications{
 	 *
 	 * @param array $factories 
 	 * @return void
-	 * @author Pavlos Syngelakis
 	 */
 	protected function send_notifications( $factories ){
 		foreach( $factories as $factory ){
