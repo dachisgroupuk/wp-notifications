@@ -87,13 +87,13 @@ Class WP_Notifications{
 	 * @return array
 	 */
 	function generate_notifications( $type_payload, $op_payload, $payload ){
-		$factories = array();
-		if($type_payload != 'user'){
-		  $user = wp_get_current_user();
-		}		
+		$factories = array();		
+		$user = wp_get_current_user();	
 		foreach( $this->_plugins as $plugin){
 			$factory = new Notifications_Api_Factory_Queue($plugin, $type_payload, $op_payload, $payload);
-			$factory->user = $user;
+			if($type_payload != 'user'){
+			  $factory->user = $user;
+		  }
 			do_action( $plugin.'_notification_factory', $factory );
 			$factories[] = $factory;
 		}
