@@ -56,6 +56,9 @@ Class WP_Notifications{
 	
 	function post_status_notification( $new_status, $old_status, $post ){
 		if($new_status != $old_status){
+		  if($old_status == 'auto-draft'){
+		    $new_status = 'new';
+		  }
 			$this->notify_subscribers( $post->post_type, $new_status, $post );
 		}		
 	}
