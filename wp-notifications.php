@@ -26,6 +26,7 @@ Class WP_Notifications{
 		add_action( 'wp_notifications_add_sender', array($this, 'add_subscriber'), 10, 1 );
 		add_action( 'wp_login', array($this, 'user_login_notification'), 10, 2 );
 		add_action( 'clear_auth_cookie', array($this, 'user_logout_notification'), 10);
+		add_action( 'user_register', array($this, 'user_join_notification'), 10, 1);
 	}
 	
 	/**
@@ -72,6 +73,11 @@ Class WP_Notifications{
 	  $this->notify_subscribers( 'user', 'logout', $user );
 	}
 	
+	function user_join_notification($user_id){
+	  $user = get_userdata($user_id);
+	  $this->notify_subscribers( 'user', 'join', $user );
+	}
+	
 	/**
 	 * Generates every notification factory and fires the specific action for each plugin.
 	 *
@@ -82,7 +88,9 @@ Class WP_Notifications{
 	 */
 	function generate_notifications( $type_payload, $op_payload, $payload ){
 		$factories = array();
-		$user = wp_get_current_user();
+		if($type_payload != 'user'){
+		  $user = wp_get_current_user();
+		}		
 		foreach( $this->_plugins as $plugin){
 			$factory = new Notifications_Api_Factory_Queue($plugin, $type_payload, $op_payload, $payload);
 			$factory->user = $user;
